@@ -1,24 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
+import { toast } from 'react-toastify';
 
-const Login = () => {
+const Login = ({ setIsAuthenticated }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError('');
 
-    if (!email || !password) {
-      setError('Por favor, preencha todos os campos.');
-      return;
-    }
-
-    if (password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres.');
+    if (email.trim() === '' || password.trim() === '') {
+      toast.error('Preencha todos os campos.');
       return;
     }
 
@@ -31,40 +25,48 @@ const Login = () => {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        localStorage.setItem('token', data.token); // Armazene o token retornado
-        navigate('/home');
-      } else {
-        setError(data.message || 'Erro ao fazer login. Tente novamente.');
+      if (!response.ok) {
+        throw new Error('Credenciais inválidas.');
       }
+
+      const data = await response.json();
+      localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('token', data.token); // Armazena o token no localStorage
+      setIsAuthenticated(true);
+      toast.success('Login realizado com sucesso!');
+      navigate('/home');
     } catch (error) {
-      setError('Erro ao conectar com a API.');
+      toast.error(error.message);
     }
   };
 
   return (
     <div className="login-container">
-      <h1>Login</h1>
-      <form onSubmit={handleLogin}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Senha"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <button type="submit">Entrar</button>
+      <form onSubmit={handleLogin} className="login-form">
+        <h2>Login</h2>
+        <div className="form-group">
+          <label htmlFor="email">Email:</label>
+          <input
+            type="email"
+            id="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="password">Senha:</label>
+          <input
+            type="password"
+            id="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+        <button type="submit" className="login-button">Entrar</button>
+        <p>
+          <span onClick={() => navigate('/password-reset')} className="link">Esqueceu a senha?</span>
+        </p>
       </form>
-      {error && <p className="error-message">{error}</p>}
     </div>
   );
 };
